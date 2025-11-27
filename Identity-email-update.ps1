@@ -31,7 +31,7 @@ function Get-VerifiedAdminCredential {
 }
 
 # Prompt and validate Domain Admin credentials
-$AdminCred = Get-VerifiedAdminCredential -PromptMessage "Enter Domain Admin level credentials. For example,  acme\mike_da"
+$AdminCred = Get-VerifiedAdminCredential -PromptMessage "Enter Domain Admin level credentials. For example, acme\mike_da"
 
 # Prompt user for an email address
 $StudentEmail = Read-Host "Enter your email address (e.g., student@example.com)"
