@@ -1,6 +1,38 @@
 # Ensure the Active Directory module is imported
 Import-Module ActiveDirectory
 
+# This function verifies the admin credentials.
+function Get-VerifiedAdminCredential {
+    [CmdletBinding()]
+    param(
+        [string] $PromptMessage = "Domain Admin Credentials"
+    )
+    # Prompt for credentials
+    Write-Host "Please enter credentials to continue."
+    $cred = Get-Credential -Message $PromptMessage
+
+    # Validate credentials
+    Add-Type -AssemblyName System.DirectoryServices.AccountManagement
+    $context = New-Object System.DirectoryServices.AccountManagement.PrincipalContext([System.DirectoryServices.AccountManagement.ContextType]::Domain, $env:USERDNSDOMAIN)
+    $username = $cred.UserName
+    # Remove domain part if present (Domain\User)
+    if($username -like "*\*") {
+        $username = $username.Split("\")[1]
+    }
+    $password = $cred.GetNetworkCredential().Password
+    $isValid = $context.ValidateCredentials($username, $password)
+    $context.Dispose()  # free the PrincipalContext resource
+    if(-not $isValid) {
+        Stop-Transcript
+        throw "Invalid admin credentials! Exiting."
+    }
+    Write-Host "Credentials validated. Continuing..."
+    return $cred
+}
+
+# Prompt and validate Domain Admin credentials
+$AdminCred = Get-VerifiedAdminCredential -PromptMessage "Enter Domain Admin level credentials. For example,  acme\mike_da"
+
 # Prompt user for an email address
 $StudentEmail = Read-Host "Enter your email address (e.g., student@example.com)"
 
@@ -19,7 +51,7 @@ $users = @(
 # Update email address for each user
 foreach ($user in $users) {
     try {
-        Set-ADUser -Identity $user.Name -EmailAddress $StudentEmail
+        Set-ADUser -Identity $user.Name -EmailAddress $StudentEmail -Credential $AdminCred -ErrorAction SilentlyContinue
         Write-Host "Updated email address for $($user.Name) to $StudentEmail"
     } catch {
         Write-Warning "Failed to update email address for $($user.Name): $_"
